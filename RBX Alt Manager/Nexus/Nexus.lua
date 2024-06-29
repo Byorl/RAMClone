@@ -207,14 +207,21 @@ do -- Nexus
         return Message:sub(#Header + 1)
     end
 
+    -- Debugging print function to verify what is being returned
+    local function debugPrint(...)
+        print(...)
+    end
+
     function Nexus:Connect(Host, Bypass)
-        if not Bypass and self.IsConnected then return 'Ignoring connection request, Nexus is already connected' end
+        if not Bypass and self.IsConnected then 
+            return 'Ignoring connection request, Nexus is already connected' 
+        end
 
         while true do
             for Index, Connection in pairs(self.Connections) do
                 Connection:Disconnect()
             end
-        
+
             table.clear(self.Connections)
 
             if self.IsConnected then
@@ -231,19 +238,40 @@ do -- Nexus
 
             local Success, Socket = pcall(WSConnect, ('ws://%s/Nexus?name=%s&id=%s&jobId=%s'):format(Host, LocalPlayer.Name, LocalPlayer.UserId, game.JobId))
 
-            if not Success then task.wait(12) continue end
+            if not Success then 
+                task.wait(12) 
+                continue 
+            end
 
             self.Socket = Socket
             self.IsConnected = true
 
-            table.insert(self.Connections, Socket.OnMessage:Connect(function(Message)
+            -- Attempt to connect to OnMessage and OnClose
+            local onMessageConnection = Socket.OnMessage:Connect(function(Message)
                 self.MessageReceived:Fire(Message)
-            end))
-
-            table.insert(self.Connections, Socket.OnClose:Connect(function()
+            end)
+            
+            local onCloseConnection = Socket.OnClose:Connect(function()
                 self.IsConnected = false
                 self.Disconnected:Fire()
-            end))
+            end)
+
+            -- Debug prints to verify connection objects
+            debugPrint("OnMessage Connection:", onMessageConnection)
+            debugPrint("OnClose Connection:", onCloseConnection)
+
+            -- Insert connections if they are valid
+            if onMessageConnection then
+                table.insert(self.Connections, onMessageConnection)
+            else
+                debugPrint("Failed to create OnMessage connection")
+            end
+
+            if onCloseConnection then
+                table.insert(self.Connections, onCloseConnection)
+            else
+                debugPrint("Failed to create OnClose connection")
+            end
 
             self.Connected:Fire()
 
@@ -258,6 +286,7 @@ do -- Nexus
             end
         end
     end
+
 
     function Nexus:Stop()
         self.IsConnected = false
