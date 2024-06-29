@@ -212,11 +212,6 @@ do -- Nexus
         print(...)
     end
 
-    -- Debugging print function to verify what is being returned
-    local function debugPrint(...)
-        print(...)
-    end
-
     function Nexus:Connect(Host, Bypass)
         if not Bypass and self.IsConnected then 
             return 'Ignoring connection request, Nexus is already connected' 
@@ -297,6 +292,7 @@ do -- Nexus
             end
         end
     end
+
 
 
 
