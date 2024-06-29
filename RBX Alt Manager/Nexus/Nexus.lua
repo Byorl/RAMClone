@@ -212,16 +212,23 @@ do -- Nexus
         print(...)
     end
 
+    -- Debugging print function to verify what is being returned
+    local function debugPrint(...)
+        print(...)
+    end
+
     function Nexus:Connect(Host, Bypass)
         if not Bypass and self.IsConnected then 
             return 'Ignoring connection request, Nexus is already connected' 
         end
 
         while true do
+            -- Disconnect existing connections
             for Index, Connection in pairs(self.Connections) do
                 Connection:Disconnect()
             end
-
+            
+            -- Clear the connections table
             table.clear(self.Connections)
 
             if self.IsConnected then
@@ -236,7 +243,9 @@ do -- Nexus
                 Host = 'localhost:5242'
             end
 
+            -- Attempt to establish a connection
             local Success, Socket = pcall(WSConnect, ('ws://%s/Nexus?name=%s&id=%s&jobId=%s'):format(Host, LocalPlayer.Name, LocalPlayer.UserId, game.JobId))
+            debugPrint("WSConnect Success:", Success, "Socket:", Socket)
 
             if not Success then 
                 task.wait(12) 
@@ -246,7 +255,7 @@ do -- Nexus
             self.Socket = Socket
             self.IsConnected = true
 
-            -- Attempt to connect to OnMessage and OnClose
+            -- Connect to OnMessage and OnClose
             local onMessageConnection = Socket.OnMessage:Connect(function(Message)
                 self.MessageReceived:Fire(Message)
             end)
@@ -275,8 +284,10 @@ do -- Nexus
 
             self.Connected:Fire()
 
+            -- Ping loop
             while self.IsConnected do
                 local Success, Error = pcall(self.Send, self, 'ping')
+                debugPrint("Ping Success:", Success, "Error:", Error)
 
                 if not Success or self.Terminated then
                     break
@@ -286,6 +297,7 @@ do -- Nexus
             end
         end
     end
+
 
 
     function Nexus:Stop()
